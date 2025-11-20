@@ -34,5 +34,3 @@ for i in range(0, getMatrix, 1):
 
 for i in range(getMatrix):
     print(matrix[i])
-
-
