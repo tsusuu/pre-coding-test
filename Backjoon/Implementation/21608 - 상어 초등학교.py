@@ -27,8 +27,10 @@ for student in students:
                         if seat[dx][dy] == 0:
                             empty += 1
 
+                # 가중치를 더하여 우선순위를 구하는 방법, 어떻게 작동하는지에 대해 더 자세히 공부할 필요가 있음
                 weight.append((x, y, prefer, empty))
 
+    # 람다의 사용법에 대해서 더 자세히 공부할 것
     weight.sort(key=lambda x: (-x[2], -x[3], x[0], x[1]))
     seat[weight[0][0]][weight[0][1]] = student[0]
 
