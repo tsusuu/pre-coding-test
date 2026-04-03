@@ -11,8 +11,37 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
-DEFAULT_ROOT = Path('/Users/choeyeongseo/Documents/code/pre-coding-test/Backjoon')
+MACOS_DEFAULT_ROOT = Path('/Users/choeyeongseo/Documents/code/pre-coding-test/Backjoon')
+WSL2_DEFAULT_ROOT = Path.home() / 'Documents/code/pre-coding-test/Backjoon'
 PROBLEM_URL_TEMPLATE = 'https://www.acmicpc.net/problem/{problem_id}'
+
+
+def candidate_roots() -> list[Path]:
+    script_dir = Path(__file__).resolve().parent
+    candidates = [
+        MACOS_DEFAULT_ROOT,
+        script_dir / 'Backjoon',
+        script_dir.parent / 'Backjoon',
+        WSL2_DEFAULT_ROOT,
+        Path.cwd() / 'Backjoon',
+    ]
+
+    unique_candidates: list[Path] = []
+    seen: set[Path] = set()
+    for candidate in candidates:
+        resolved = candidate.expanduser().resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique_candidates.append(resolved)
+    return unique_candidates
+
+
+def get_default_root() -> Path:
+    for candidate in candidate_roots():
+        if candidate.exists():
+            return candidate
+    return candidate_roots()[0]
 
 
 def find_problem_dirs(root: Path, problem_id: str) -> list[Path]:
@@ -101,7 +130,17 @@ def normalize_problem_name(raw_name: str) -> str:
 
 
 def ensure_problem_dir(root: Path, problem_id: str) -> Path | None:
-    matches = find_problem_dirs(root, problem_id)
+    search_roots = [root]
+    if root == get_default_root():
+        for candidate in candidate_roots():
+            if candidate not in search_roots and candidate.exists():
+                search_roots.append(candidate)
+
+    matches: list[Path] = []
+    for search_root in search_roots:
+        matches.extend(find_problem_dirs(search_root, problem_id))
+    matches = sorted(set(matches))
+
     if len(matches) == 1:
         return matches[0]
     if len(matches) > 1:
@@ -110,7 +149,7 @@ def ensure_problem_dir(root: Path, problem_id: str) -> Path | None:
             print(match, file=sys.stderr)
         return None
 
-    parent_dir = prompt_for_parent_dir(root)
+    parent_dir = prompt_for_parent_dir(search_roots[0])
     if parent_dir is None:
         print('Creation cancelled.', file=sys.stderr)
         return None
@@ -147,8 +186,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         '--root',
-        default=str(DEFAULT_ROOT),
-        help='Base root directory used for search and relative parent-directory input.',
+        default=str(get_default_root()),
+        help='Base root directory used for search and relative parent-directory input. '
+        'Defaults to the macOS path when present, otherwise the WSL2 path.',
     )
     parser.add_argument(
         '--copy-main',
