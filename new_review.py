@@ -129,7 +129,7 @@ def normalize_problem_name(raw_name: str) -> str:
     return name.replace('/', '_')
 
 
-def ensure_problem_dir(root: Path, problem_id: str) -> Path | None:
+def ensure_problem_dir(root: Path, problem_id: str) -> tuple[Path, bool] | None:
     search_roots = [root]
     if root == get_default_root():
         for candidate in candidate_roots():
@@ -142,7 +142,7 @@ def ensure_problem_dir(root: Path, problem_id: str) -> Path | None:
     matches = sorted(set(matches))
 
     if len(matches) == 1:
-        return matches[0]
+        return matches[0], False
     if len(matches) > 1:
         print('Multiple problem directories found. Narrow the root or resolve duplicates:', file=sys.stderr)
         for match in matches:
@@ -171,7 +171,7 @@ def ensure_problem_dir(root: Path, problem_id: str) -> Path | None:
     if not main_file.exists():
         main_file.write_text('', encoding='utf-8')
 
-    return problem_dir
+    return problem_dir, True
 
 
 def parse_args() -> argparse.Namespace:
@@ -207,14 +207,22 @@ def main() -> int:
     args = parse_args()
     root = Path(args.root).expanduser().resolve()
 
-    problem_dir = ensure_problem_dir(root, args.problem_id)
-    if problem_dir is None:
+    ensured = ensure_problem_dir(root, args.problem_id)
+    if ensured is None:
         return 1
+    problem_dir, created_problem_dir = ensured
 
     main_file = problem_dir / 'main.py'
     if not main_file.exists():
         print(f'main.py is missing in {problem_dir}', file=sys.stderr)
         return 1
+
+    if created_problem_dir:
+        if args.stdout:
+            print(main_file)
+        else:
+            print(f'Created problem directory and main.py: {main_file}')
+        return 0
 
     target = problem_dir / f'{args.date}.py'
     if target.exists():
