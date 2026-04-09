@@ -22,13 +22,13 @@ while len(tree[gigaNode]) == 1:
 
 
 def dfs(tree, gigaNode):
-    branchLenth = 0
+    branchLength = 0
     for node, d in tree[gigaNode].items():
         del tree[node][gigaNode]
-        tempLenth = d + dfs(tree, node)
-        if branchLenth < tempLenth:
-            branchLenth = tempLenth
-    return branchLenth
+        tempLength = d + dfs(tree, node)
+        if branchLength < tempLength:
+            branchLength = tempLength
+    return branchLength
 
 
 print(rootToGiga, dfs(tree, gigaNode))
